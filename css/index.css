@@ -1,0 +1,123 @@
+body {
+	background-color: #333;
+	margin: 0;
+	padding: 0;
+}
+
+/* Show book button */
+.show-book-button {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 1000;
+	padding: 15px 30px;
+	font-size: 18px;
+	font-weight: bold;
+	color: #fff;
+	background-color: #4CAF50;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.show-book-button:hover {
+	background-color: #45a049;
+}
+
+.show-book-button:active {
+	background-color: #3d8b40;
+}
+
+.show-book-button.hidden {
+	display: none;
+}
+.container {
+	height: 100vh;
+	width: 100%;
+}
+.fullscreen {
+	background-color: #333;
+}
+/* force hide all page-loading except loading-active class */
+.page-loading:not(.loading-active) {
+	display: none !important;
+	visibility: hidden !important;
+	opacity: 0 !important;
+}
+
+/* Single centered loading indicator overlay */
+#single-loading-overlay {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 100000;
+	pointer-events: none;
+	display: block;
+}
+
+#single-loading-overlay .loader {
+	width: 50px;
+	height: 50px;
+	margin: 0 auto 10px;
+	background-size: contain;
+	background-image: url('../images/light-loader.gif');
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+#single-loading-overlay .text {
+	text-align: center;
+	color: #eee;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+	font-size: 12pt;
+}
+
+/* Hide canvas elements when loading */
+.flip-book canvas {
+	position: relative;
+}
+
+/* Full screen overlay to cover canvas loading indicators */
+#canvas-loading-cover {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	background-color: rgba(51, 51, 51, 0.98);
+	z-index: 999999;
+	display: none !important;
+	pointer-events: none;
+}
+
+/* When inside flipbook, make it absolute */
+.flip-book #canvas-loading-cover {
+	position: absolute !important;
+	width: 100% !important;
+	height: 100% !important;
+}
+
+#canvas-loading-cover.show {
+	display: block !important;
+}
+
+/* Also hide any canvas elements when cover is shown */
+#canvas-loading-cover.show ~ * .flip-book canvas,
+body #canvas-loading-cover.show ~ * .flip-book canvas,
+.flip-book #canvas-loading-cover.show ~ canvas,
+.flip-book:has(#canvas-loading-cover.show) canvas {
+	opacity: 0 !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
+
+/* Force hide canvas when cover is shown */
+body:has(#canvas-loading-cover.show) .flip-book canvas {
+	opacity: 0 !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
