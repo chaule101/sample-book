@@ -13,7 +13,7 @@ var template = {
 // Function to initialize and load the book
 function loadBook() {
 	var PDF_PATH = 'books/pdf/ProfileBook.pdf';
-	var container = $('#container2');
+	var container = $('#container-book');
 
 	// Show the container
 	container.show();
@@ -55,10 +55,32 @@ function loadBook() {
 	var options = {
 		pdf: PDF_PATH,
 		template: template,
+		// Try multiple sound configuration formats
+		sound: {
+			startFlip: 'sounds/start-flip.mp3',
+		},
+		sounds: {
+			startFlip: 'sounds/start-flip.mp3',
+		},
+		// Alternative format: separate properties
+		soundStartFlip: 'sounds/start-flip.mp3',
 		propertiesCallback: function(props) {
 			// Override the page calculation to match actual PDF pages
 			// The library might calculate 76, but PDF only has 75 pages
 			// We'll let it calculate but catch the error
+
+			// Set sounds in properties - try multiple formats
+			// Always set sounds, even if they exist (override)
+			props.sound = {
+				startFlip: 'sounds/start-flip.mp3',
+			};
+			props.sounds = {
+				startFlip: 'sounds/start-flip.mp3',
+			};
+
+			// Also try as separate properties
+			props.soundStartFlip = 'sounds/start-flip.mp3';
+
 			return props;
 		}
 	};
@@ -142,7 +164,90 @@ function loadBook() {
 	if (typeof container.FlipBook === 'function') {
 		try {
 			var flipbookInstance = container.FlipBook(options);
-			console.log('Flipbook loaded:', flipbookInstance);
+
+			// Try to enable sounds programmatically after initialization
+			setTimeout(function() {
+				// Try to enable sounds via the sounds button if it exists
+				var soundsButton = container.find('.cmdSounds').first();
+				if (soundsButton.length === 0) {
+					// Try finding it in the document
+					soundsButton = $(document).find('.cmdSounds').first();
+				}
+
+				if (soundsButton.length > 0) {
+					// Always click to toggle/enable sounds
+					soundsButton[0].click();
+
+					// Wait a bit and click again if needed (toggle might have been off)
+					setTimeout(function() {
+						// Check if we need to click again
+						var icon = soundsButton.find('.fa-volume-up, .fa-volume-off, .fa-volume-down');
+						if (icon.length > 0) {
+							// If it shows volume-off, click again to enable
+							if (icon.hasClass('fa-volume-off')) {
+								soundsButton[0].click();
+							}
+						}
+					}, 200);
+				}
+
+				// Also try to enable sounds via the API if available
+				if (flipbookInstance) {
+					if (flipbookInstance.sounds) {
+						// Try to enable sounds
+						if (typeof flipbookInstance.sounds.enable === 'function') {
+							flipbookInstance.sounds.enable();
+						} else if (typeof flipbookInstance.sounds.setEnabled === 'function') {
+							flipbookInstance.sounds.setEnabled(true);
+						} else if (typeof flipbookInstance.sounds.toggle === 'function') {
+							flipbookInstance.sounds.toggle();
+						}
+
+						// Force enable if already enabled but not working
+						if (flipbookInstance.sounds.enabled === true) {
+							// If audio objects are empty, manually load them
+							if (flipbookInstance.sounds.audio && Object.keys(flipbookInstance.sounds.audio).length === 0) {
+								// Try to manually create and load audio objects
+								try {
+									// Create audio elements for startFlip and endFlip
+									var startFlipAudio = new Audio('sounds/start-flip.mp3');
+
+									// Preload the audio
+									startFlipAudio.preload = 'auto';
+
+									// Try to load them
+									startFlipAudio.load();
+
+									// Assign them to the sounds.audio object
+									flipbookInstance.sounds.audio.startFlip = startFlipAudio;
+
+									// Also try to set them in sounds.sounds if that exists
+									if (flipbookInstance.sounds.sounds) {
+										flipbookInstance.sounds.sounds.startFlip = startFlipAudio;
+									}
+								} catch (e) {
+									// Silently handle errors
+								}
+							}
+
+							// Try to manually load audio files if they're not loaded
+							if (flipbookInstance.sounds.audio) {
+								// Check if we need to reload or initialize audio
+								if (typeof flipbookInstance.sounds.load === 'function') {
+									flipbookInstance.sounds.load();
+								}
+							}
+						}
+					}
+
+					// Try to access sounds through scene
+					if (flipbookInstance.scene && flipbookInstance.scene.sounds) {
+						if (typeof flipbookInstance.scene.sounds.enable === 'function') {
+							flipbookInstance.scene.sounds.enable();
+						}
+					}
+				}
+			}, 1500);
 
 			// Move cover to be inside the flipbook container for better positioning
 			setTimeout(function() {
@@ -267,7 +372,6 @@ function loadBook() {
 			setTimeout(function() {
 				if (flipbookInstance && flipbookInstance.book) {
 					var totalPages = flipbookInstance.book.getPages ? flipbookInstance.book.getPages() : 'unknown';
-					console.log('Total pages in flipbook:', totalPages);
 				}
 			}, 2000);
 
@@ -300,7 +404,7 @@ function loadBook() {
 			console.error('Error loading flipbook:', e);
 		}
 	} else {
-		console.error('FlipBook function not available. Make sure 3dflipbook.min.js is loaded.');
+		console.error('FlipBook function not available');
 	}
 
 	// Function to setup drag-to-flip functionality
@@ -321,7 +425,6 @@ function loadBook() {
 		}
 
 		var canvasElement = canvas.first();
-		console.log('Canvas found, setting up drag overlay');
 
 		// Create an invisible overlay div that covers the entire canvas
 		// This will intercept ALL mouse events before they reach the library
@@ -364,8 +467,6 @@ function loadBook() {
 			if (hasFlipped) return; // Prevent multiple flips
 			hasFlipped = true;
 
-			console.log('Navigating page:', direction);
-
 			// Try to find navigation buttons in the container (not just flipbookView)
 			var navButton = null;
 			if (direction === 'forward') {
@@ -380,36 +481,28 @@ function loadBook() {
 				}
 			}
 
-			console.log('Navigation button found:', navButton.length, navButton);
-
 			if (navButton && navButton.length > 0) {
 				// Check if button is not disabled
 				if (!navButton.hasClass('disabled') && navButton.is(':visible')) {
-					console.log('Clicking navigation button');
 					navButton[0].click(); // Use native click instead of trigger
-				} else {
-					console.log('Button is disabled or hidden');
 				}
 			} else {
 				// Fallback: try using flipbook instance API
-				console.log('No navigation button found, trying API');
 				try {
 					if (direction === 'forward' && flipbookInstance && flipbookInstance.book) {
 						var currentPage = flipbookInstance.book.getCurrentPage ? flipbookInstance.book.getCurrentPage() : 0;
 						var totalPages = flipbookInstance.book.getPages ? flipbookInstance.book.getPages() : 0;
-						console.log('Current page:', currentPage, 'Total pages:', totalPages);
 						if (currentPage < totalPages - 1 && flipbookInstance.book.gotoPage) {
 							flipbookInstance.book.gotoPage(currentPage + 1);
 						}
 					} else if (direction === 'backward' && flipbookInstance && flipbookInstance.book) {
 						var currentPage = flipbookInstance.book.getCurrentPage ? flipbookInstance.book.getCurrentPage() : 0;
-						console.log('Current page:', currentPage);
 						if (currentPage > 0 && flipbookInstance.book.gotoPage) {
 							flipbookInstance.book.gotoPage(currentPage - 1);
 						}
 					}
 				} catch (err) {
-					console.log('Could not navigate page:', err);
+					// Silently handle errors
 				}
 			}
 		}
@@ -426,7 +519,6 @@ function loadBook() {
 			hasFlipped = false;
 			startX = e.pageX || e.clientX;
 			startY = e.pageY || e.clientY;
-			console.log('Overlay drag started at:', startX, startY, '- anywhere on page!');
 
 			overlay.css('cursor', 'grabbing');
 
@@ -450,8 +542,6 @@ function loadBook() {
 
 			// Only trigger if horizontal drag is dominant
 			if (Math.abs(deltaX) > Math.abs(deltaY) && dragDistance > dragThreshold) {
-				console.log('Horizontal drag detected on overlay - deltaX:', deltaX, 'deltaY:', deltaY);
-
 				// Prevent library's default behavior
 				e.preventDefault();
 				e.stopPropagation();
@@ -459,10 +549,8 @@ function loadBook() {
 
 				// Navigate based on direction
 				if (deltaX > 0) {
-					console.log('Dragging right - going backward');
 					navigatePage('backward');
 				} else if (deltaX < 0) {
-					console.log('Dragging left - going forward');
 					navigatePage('forward');
 				}
 			}
@@ -520,8 +608,6 @@ function loadBook() {
 		// Disable pointer events on canvas so library doesn't intercept
 		// The overlay will handle all interactions
 		canvasElement.css('pointer-events', 'none');
-
-		console.log('Drag-to-flip overlay setup complete! You can now drag ANYWHERE on the pages.');
 	}
 }
 
