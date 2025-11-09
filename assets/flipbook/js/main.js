@@ -13,6 +13,100 @@
 	}
 })();
 
+// Intercept PDF.js rendering to force 2x scale for crisp text
+// This ensures all PDF rendering uses 2x scale regardless of how the library calls it
+(function() {
+	var targetScale = 2.0; // Force 2x rendering for clarity
+
+	// Intercept PDF.js getViewport to force 2x scale
+	function interceptPDFJS() {
+		// Try pdfjsLib (newer versions)
+		if (typeof pdfjsLib !== 'undefined' && pdfjsLib.getDocument) {
+			var originalGetDocument = pdfjsLib.getDocument;
+			pdfjsLib.getDocument = function() {
+				var promise = originalGetDocument.apply(this, arguments);
+				// Intercept the promise to modify pages when they're loaded
+				return promise.then(function(pdf) {
+					var originalGetPage = pdf.getPage;
+					pdf.getPage = function(pageNumber) {
+						return originalGetPage.call(this, pageNumber).then(function(page) {
+							// Intercept getViewport to force 2x scale
+							var originalGetViewport = page.getViewport;
+							page.getViewport = function(scale, rotation) {
+								// Force 2x scale
+								var viewport = originalGetViewport.call(this, targetScale, rotation || 0);
+								return viewport;
+							};
+
+							// Intercept render to ensure 2x scale is used
+							var originalRender = page.render;
+							page.render = function(params) {
+								// Force 2x scale in render parameters
+								if (params && params.viewport) {
+									// If viewport is provided, ensure it's at 2x
+									if (params.viewport.scale !== targetScale) {
+										params.viewport = page.getViewport(targetScale, params.viewport.rotation || 0);
+									}
+								} else {
+									// Create viewport at 2x if not provided
+									params = params || {};
+									params.viewport = page.getViewport(targetScale, 0);
+								}
+								return originalRender.call(this, params);
+							};
+
+							return page;
+						});
+					};
+					return pdf;
+				});
+			};
+		}
+
+		// Try PDFJS (older versions)
+		if (typeof PDFJS !== 'undefined' && PDFJS.getDocument) {
+			var originalGetDocument2 = PDFJS.getDocument;
+			PDFJS.getDocument = function() {
+				var promise = originalGetDocument2.apply(this, arguments);
+				return promise.then(function(pdf) {
+					var originalGetPage2 = pdf.getPage;
+					pdf.getPage = function(pageNumber) {
+						return originalGetPage2.call(this, pageNumber).then(function(page) {
+							var originalGetViewport2 = page.getViewport;
+							page.getViewport = function(scale, rotation) {
+								return originalGetViewport2.call(this, targetScale, rotation || 0);
+							};
+
+							var originalRender2 = page.render;
+							page.render = function(params) {
+								if (params && params.viewport) {
+									if (params.viewport.scale !== targetScale) {
+										params.viewport = page.getViewport(targetScale, params.viewport.rotation || 0);
+									}
+								} else {
+									params = params || {};
+									params.viewport = page.getViewport(targetScale, 0);
+								}
+								return originalRender2.call(this, params);
+							};
+
+							return page;
+						});
+					};
+					return pdf;
+				});
+			};
+		}
+	}
+
+	// Try to intercept immediately
+	interceptPDFJS();
+
+	// Also try after a delay in case PDF.js loads later
+	setTimeout(interceptPDFJS, 100);
+	setTimeout(interceptPDFJS, 500);
+})();
+
 var template = {
 	html: 'assets/flipbook/templates/default-book-view.html',
 	links: [{
@@ -74,11 +168,15 @@ function loadBook() {
 	// Simple direct PDF loading - limit to actual PDF pages (75 pages)
 	// The library calculates: pages = 4 (covers) + 2 * sheets
 	// For 75 pages: sheets = (75-4)/2 = 35.5, so we need to limit it
+
+	// Calculate device pixel ratio for high-DPI rendering
+	var ratio = window.devicePixelRatio || 1;
+	// Use 2x scale to match 50% zoom clarity (2x resolution = clearer text)
+	var pdfScale = 2.0;
+
 	var options = {
 		pdf: PDF_PATH,
 		template: template,
-		// Increase PDF rendering scale for better text clarity
-		scale: 2.0,
 		// Try multiple sound configuration formats
 		sound: {
 			startFlip: 'assets/flipbook/sounds/start-flip.mp3',
@@ -88,10 +186,13 @@ function loadBook() {
 		},
 		// Alternative format: separate properties
 		soundStartFlip: 'assets/flipbook/sounds/start-flip.mp3',
+		// Single propertiesCallback that handles both scale and sounds
 		propertiesCallback: function(props) {
-			// Override the page calculation to match actual PDF pages
-			// The library might calculate 76, but PDF only has 75 pages
-			// We'll let it calculate but catch the error
+			// Increase PDF rendering scale for better text clarity
+			// 2x scale matches the clarity you see at 50% browser zoom
+			if (props.page) {
+				props.page.scale = pdfScale;
+			}
 
 			// Set sounds in properties - try multiple formats
 			// Always set sounds, even if they exist (override)
@@ -188,6 +289,55 @@ function loadBook() {
 	if (typeof container.FlipBook === 'function') {
 		try {
 			var flipbookInstance = container.FlipBook(options);
+
+			// --- Ensure canvas resolution is correct for crisp text ---
+			// Canvas should be at 2x internal resolution, displayed at 1x size
+			// PDF.js will render at 2x scale into the 2x canvas
+			setTimeout(() => {
+				const targetRatio = 2.0; // Target 2x resolution for crisp text
+
+				function fixCanvasDPI() {
+					$('.flip-book canvas').each(function () {
+						const canvas = this;
+						const rect = canvas.getBoundingClientRect();
+
+						if (rect.width === 0 || rect.height === 0) {
+							return; // Skip if canvas is not visible
+						}
+
+						// Calculate current effective resolution
+						const currentRatio = canvas.width / rect.width;
+
+						// Only adjust if not already at correct resolution (within 10% tolerance)
+						if (Math.abs(currentRatio - targetRatio) > 0.1) {
+							// Canvas needs to be resized to 2x resolution
+							// Don't scale the context - PDF.js will render at 2x scale directly
+							canvas.width = Math.round(rect.width * targetRatio);
+							canvas.height = Math.round(rect.height * targetRatio);
+
+							// Ensure image smoothing is disabled for crisp rendering
+							const ctx = canvas.getContext('2d', { willReadFrequently: false });
+							if (ctx) {
+								ctx.imageSmoothingEnabled = false;
+								ctx.webkitImageSmoothingEnabled = false;
+								ctx.mozImageSmoothingEnabled = false;
+								ctx.msImageSmoothingEnabled = false;
+							}
+
+							// Note: We don't scale the context here because PDF.js will render
+							// at 2x scale directly into the 2x canvas, giving us crisp text
+						}
+					});
+				}
+
+				// Run immediately and periodically to catch new pages
+				fixCanvasDPI();
+				setInterval(fixCanvasDPI, 1000);
+
+				// Also re-run when zooming or resizing window
+				window.addEventListener('resize', fixCanvasDPI);
+			}, 1500);
+
 
 			// Try to enable sounds programmatically after initialization
 			setTimeout(function() {
@@ -637,9 +787,6 @@ function loadBook() {
 
 // Wait for document ready, then set up button click handler
 $(document).ready(function() {
-	// Button click handler to load the book
-	$('#show-book-btn').on('click', function() {
-		loadBook();
-	});
+	loadBook();
 });
 

@@ -48,8 +48,12 @@ body {
 /* Hide canvas elements when loading - cover them with overlay */
 .flip-book canvas {
 	position: relative;
-	transform: scale(0.5) !important;
-	-webkit-transform: scale(0.5) !important;
+	image-rendering: optimizeQuality;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: none !important;
+  backface-visibility: hidden;
 }
 
 /* Full screen overlay to cover canvas loading indicators */

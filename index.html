@@ -6,9 +6,6 @@
 		<link rel="stylesheet" href="assets/flipbook/css/index.css">
 	</head>
 	<body>
-		<!-- show the book -->
-		<button id="show-book-btn" class="show-book-button">Show Book</button>
-
 		<!-- Full screen cover to hide canvas loading indicators -->
 		<div id="canvas-loading-cover">
 			<!-- Single centered loading indicator overlay -->
@@ -26,41 +23,9 @@
 		<script src="assets/flipbook/js/html2canvas.min.js"></script>
 		<script src="assets/flipbook/js/three.min.js"></script>
 		<script src="assets/flipbook/js/pdf.min.js"></script>
-		<script>
-			// Configure PDF.js worker path immediately after loading pdf.min.js
-			// This must be set before any PDF operations occur
-			(function() {
-				var workerPath = 'assets/flipbook/js/pdf.worker.js';
-
-				// Try multiple ways to set the worker path for compatibility
-				if (typeof PDFJS !== 'undefined') {
-					PDFJS.workerSrc = workerPath;
-				}
-				if (typeof pdfjsLib !== 'undefined') {
-					pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
-					console.log('pdfjsLib.GlobalWorkerOptions.workerSrc set to:', pdfjsLib.GlobalWorkerOptions.workerSrc);
-				}
-				// Set on global object for older versions
-				if (typeof window !== 'undefined') {
-					window.PDFJS = window.PDFJS || {};
-					window.PDFJS.workerSrc = workerPath;
-				}
-			})();
-		</script>
+		<script src="assets/flipbook/js/init-dpi.js"></script>
 		<script src="assets/flipbook/js/canvas-intercept.js"></script>
 		<script src="assets/flipbook/js/3dflipbook.min.js"></script>
-		<script>
-			// Ensure worker path is set again after 3dflipbook loads (in case it resets it)
-			(function() {
-				var workerPath = 'assets/flipbook/js/pdf.worker.js';
-				if (typeof PDFJS !== 'undefined') {
-					PDFJS.workerSrc = workerPath;
-				}
-				if (typeof pdfjsLib !== 'undefined') {
-					pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
-				}
-			})();
-		</script>
 		<script src="assets/flipbook/js/main.js"></script>
 	</body>
 </html>

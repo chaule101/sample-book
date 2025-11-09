@@ -76,27 +76,6 @@ body {
 	font-size: 12pt;
 }
 
-/* Hide canvas elements when loading */
-.flip-book canvas {
-	position: relative;
-	image-rendering: -webkit-optimize-contrast;
-	image-rendering: crisp-edges;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-	transform: scale(0.5) !important;
-	-webkit-transform: scale(0.5) !important;
-	backface-visibility: hidden;
-	-webkit-backface-visibility: hidden;
-	will-change: transform;
-	-webkit-transform-origin: 0 0;
-	transform-origin: 0 0;
-	max-width: none !important;
-	max-height: none !important;
-	image-rendering: -moz-crisp-edges;
-	image-rendering: crisp-edges;
-	-ms-interpolation-mode: nearest-neighbor;
-}
-
 /* Full screen overlay to cover canvas loading indicators */
 #canvas-loading-cover {
 	position: fixed;
