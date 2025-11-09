@@ -3,7 +3,7 @@
 	<head>
 		<title>Sample Flip Book</title>
 		<meta charset="utf-8">
-		<link rel="stylesheet" href="css/index.css">
+		<link rel="stylesheet" href="assets/flipbook/css/index.css">
 	</head>
 	<body>
 		<!-- show the book -->
@@ -22,12 +22,45 @@
 
 		</div>
 
-		<script src="js/jquery.min.js"></script>
-		<script src="js/html2canvas.min.js"></script>
-		<script src="js/three.min.js"></script>
-		<script src="js/pdf.min.js"></script>
-		<script src="js/canvas-intercept.js"></script>
-		<script src="js/3dflipbook.min.js"></script>
-		<script src="js/main.js"></script>
+		<script src="assets/flipbook/js/jquery.min.js"></script>
+		<script src="assets/flipbook/js/html2canvas.min.js"></script>
+		<script src="assets/flipbook/js/three.min.js"></script>
+		<script src="assets/flipbook/js/pdf.min.js"></script>
+		<script>
+			// Configure PDF.js worker path immediately after loading pdf.min.js
+			// This must be set before any PDF operations occur
+			(function() {
+				var workerPath = 'assets/flipbook/js/pdf.worker.js';
+
+				// Try multiple ways to set the worker path for compatibility
+				if (typeof PDFJS !== 'undefined') {
+					PDFJS.workerSrc = workerPath;
+				}
+				if (typeof pdfjsLib !== 'undefined') {
+					pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+					console.log('pdfjsLib.GlobalWorkerOptions.workerSrc set to:', pdfjsLib.GlobalWorkerOptions.workerSrc);
+				}
+				// Set on global object for older versions
+				if (typeof window !== 'undefined') {
+					window.PDFJS = window.PDFJS || {};
+					window.PDFJS.workerSrc = workerPath;
+				}
+			})();
+		</script>
+		<script src="assets/flipbook/js/canvas-intercept.js"></script>
+		<script src="assets/flipbook/js/3dflipbook.min.js"></script>
+		<script>
+			// Ensure worker path is set again after 3dflipbook loads (in case it resets it)
+			(function() {
+				var workerPath = 'assets/flipbook/js/pdf.worker.js';
+				if (typeof PDFJS !== 'undefined') {
+					PDFJS.workerSrc = workerPath;
+				}
+				if (typeof pdfjsLib !== 'undefined') {
+					pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+				}
+			})();
+		</script>
+		<script src="assets/flipbook/js/main.js"></script>
 	</body>
 </html>

@@ -1,18 +1,40 @@
+// Configure PDF.js worker path at the very beginning
+// This ensures it's set before any PDF operations occur
+(function() {
+	if (typeof PDFJS !== 'undefined') {
+		PDFJS.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+	}
+	if (typeof pdfjsLib !== 'undefined') {
+		pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+	}
+	if (typeof window !== 'undefined') {
+		window.PDFJS = window.PDFJS || {};
+		window.PDFJS.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+	}
+})();
+
 var template = {
-	html: 'templates/default-book-view.html',
+	html: 'assets/flipbook/templates/default-book-view.html',
 	links: [{
 		rel: 'stylesheet',
-		href: 'css/font-awesome.min.css'
+		href: 'assets/flipbook/css/font-awesome.min.css'
 	}],
 	styles: [
-		'css/short-black-book-view.css'
+		'assets/flipbook/css/short-black-book-view.css'
 	],
-	script: 'js/default-book-view.js'
+	script: 'assets/flipbook/js/default-book-view.js'
 };
 
 // Function to initialize and load the book
 function loadBook() {
-	var PDF_PATH = 'books/pdf/ProfileBook.pdf';
+	// Ensure worker path is set before loading PDF
+	if (typeof PDFJS !== 'undefined') {
+		PDFJS.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+	}
+	if (typeof pdfjsLib !== 'undefined') {
+		pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+	}
+	var PDF_PATH = 'assets/flipbook/books/pdf/ProfileBook.pdf';
 	var container = $('#container-book');
 
 	// Show the container
@@ -55,15 +77,17 @@ function loadBook() {
 	var options = {
 		pdf: PDF_PATH,
 		template: template,
+		// Increase PDF rendering scale for better text clarity
+		scale: 2.0,
 		// Try multiple sound configuration formats
 		sound: {
-			startFlip: 'sounds/start-flip.mp3',
+			startFlip: 'assets/flipbook/sounds/start-flip.mp3',
 		},
 		sounds: {
-			startFlip: 'sounds/start-flip.mp3',
+			startFlip: 'assets/flipbook/sounds/start-flip.mp3',
 		},
 		// Alternative format: separate properties
-		soundStartFlip: 'sounds/start-flip.mp3',
+		soundStartFlip: 'assets/flipbook/sounds/start-flip.mp3',
 		propertiesCallback: function(props) {
 			// Override the page calculation to match actual PDF pages
 			// The library might calculate 76, but PDF only has 75 pages
@@ -72,14 +96,14 @@ function loadBook() {
 			// Set sounds in properties - try multiple formats
 			// Always set sounds, even if they exist (override)
 			props.sound = {
-				startFlip: 'sounds/start-flip.mp3',
+				startFlip: 'assets/flipbook/sounds/start-flip.mp3',
 			};
 			props.sounds = {
-				startFlip: 'sounds/start-flip.mp3',
+				startFlip: 'assets/flipbook/sounds/start-flip.mp3',
 			};
 
 			// Also try as separate properties
-			props.soundStartFlip = 'sounds/start-flip.mp3';
+			props.soundStartFlip = 'assets/flipbook/sounds/start-flip.mp3';
 
 			return props;
 		}
@@ -210,7 +234,7 @@ function loadBook() {
 								// Try to manually create and load audio objects
 								try {
 									// Create audio elements for startFlip and endFlip
-									var startFlipAudio = new Audio('sounds/start-flip.mp3');
+									var startFlipAudio = new Audio('assets/flipbook/sounds/start-flip.mp3');
 
 									// Preload the audio
 									startFlipAudio.preload = 'auto';

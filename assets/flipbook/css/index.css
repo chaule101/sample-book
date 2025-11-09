@@ -1,16 +1,47 @@
 body {
-	background-color: #333;
 	margin: 0;
 	padding: 0;
+}
+
+/* Show book button */
+.show-book-button {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 1000;
+	padding: 15px 30px;
+	font-size: 18px;
+	font-weight: bold;
+	color: #fff;
+	background-color: #4CAF50;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.show-book-button:hover {
+	background-color: #45a049;
+}
+
+.show-book-button:active {
+	background-color: #3d8b40;
+}
+
+.show-book-button.hidden {
+	display: none;
 }
 .container {
 	height: 100vh;
 	width: 100%;
+  background-color: #333;
 }
 .fullscreen {
 	background-color: #333;
 }
-/* Force hide all page-loading except those with loading-active class */
+/* force hide all page-loading except loading-active class */
 .page-loading:not(.loading-active) {
 	display: none !important;
 	visibility: hidden !important;
@@ -33,7 +64,7 @@ body {
 	height: 50px;
 	margin: 0 auto 10px;
 	background-size: contain;
-	background-image: url('images/light-loader.gif');
+	background-image: url('../images/light-loader.gif');
 	background-repeat: no-repeat;
 	background-position: center;
 }
@@ -45,9 +76,25 @@ body {
 	font-size: 12pt;
 }
 
-/* Hide canvas elements when loading - cover them with overlay */
+/* Hide canvas elements when loading */
 .flip-book canvas {
 	position: relative;
+	image-rendering: -webkit-optimize-contrast;
+	image-rendering: crisp-edges;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	transform: scale(0.5) !important;
+	-webkit-transform: scale(0.5) !important;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+	will-change: transform;
+	-webkit-transform-origin: 0 0;
+	transform-origin: 0 0;
+	max-width: none !important;
+	max-height: none !important;
+	image-rendering: -moz-crisp-edges;
+	image-rendering: crisp-edges;
+	-ms-interpolation-mode: nearest-neighbor;
 }
 
 /* Full screen overlay to cover canvas loading indicators */
@@ -84,10 +131,9 @@ body #canvas-loading-cover.show ~ * .flip-book canvas,
 	pointer-events: none !important;
 }
 
-/* Force hide canvas when cover is shown - more aggressive */
+/* Force hide canvas when cover is shown */
 body:has(#canvas-loading-cover.show) .flip-book canvas {
 	opacity: 0 !important;
 	visibility: hidden !important;
 	pointer-events: none !important;
 }
-
