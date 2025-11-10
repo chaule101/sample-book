@@ -1,33 +1,175 @@
 // Helper function to get relative path from script location (for WordPress compatibility)
 (function() {
+	var cachedBasePath = null;
+
 	function getScriptPath() {
-		// Try to find the current script tag
-		var scripts = document.getElementsByTagName('script');
-		for (var i = scripts.length - 1; i >= 0; i--) {
-			var src = scripts[i].src;
-			if (src && src.indexOf('main.js') !== -1) {
-				// Extract directory path from script src (e.g., /path/to/assets/flipbook/js/)
-				return src.substring(0, src.lastIndexOf('/') + 1);
+		// Return cached path if available
+		if (cachedBasePath !== null) {
+			return cachedBasePath;
+		}
+
+		var scriptPath = '';
+		var debugMode = window.DEBUG_FLIPBOOK_PATHS === true;
+
+		// Method 1: Use currentScript (most reliable, works in modern browsers)
+		if (document.currentScript && document.currentScript.src) {
+			var src = document.currentScript.src;
+			scriptPath = src.substring(0, src.lastIndexOf('/') + 1);
+			if (debugMode) {
+				console.log('[getScriptPath] Method 1 (currentScript) found:', scriptPath);
 			}
 		}
-		// Fallback: use relative path from document
-		return '';
+
+		// Method 2: Find main.js script tag (fallback for older browsers)
+		if (!scriptPath) {
+			var scripts = document.getElementsByTagName('script');
+			for (var i = scripts.length - 1; i >= 0; i--) {
+				var src = scripts[i].src;
+				if (src) {
+					// Look for main.js or any flipbook-related script
+					if (src.indexOf('main.js') !== -1 ||
+					    (src.indexOf('flipbook') !== -1 && src.indexOf('.js') !== -1)) {
+						scriptPath = src.substring(0, src.lastIndexOf('/') + 1);
+						if (debugMode) {
+							console.log('[getScriptPath] Method 2 (script tag search) found:', scriptPath, 'from:', src);
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		// Method 3: Find any script with 'flipbook' in the path
+		if (!scriptPath) {
+			var scripts = document.getElementsByTagName('script');
+			for (var i = scripts.length - 1; i >= 0; i--) {
+				var src = scripts[i].src;
+				if (src && src.indexOf('flipbook') !== -1) {
+					scriptPath = src.substring(0, src.lastIndexOf('/') + 1);
+					if (debugMode) {
+						console.log('[getScriptPath] Method 3 (flipbook search) found:', scriptPath, 'from:', src);
+					}
+					break;
+				}
+			}
+		}
+
+		if (debugMode && !scriptPath) {
+			console.warn('[getScriptPath] No script path found! All methods failed.');
+		}
+
+		// Cache the result
+		cachedBasePath = scriptPath;
+		return scriptPath;
+	}
+
+	// Helper function to normalize and resolve relative paths
+	function resolvePath(basePath, relativePath) {
+		// If basePath is empty or invalid, return relative path as-is
+		if (!basePath) {
+			return relativePath;
+		}
+
+		// Use browser's built-in URL resolution if available (modern browsers)
+		if (typeof URL !== 'undefined') {
+			try {
+				// Create a base URL from the script path
+				var baseUrl = new URL(basePath, window.location.href);
+				// Resolve the relative path
+				var resolvedUrl = new URL(relativePath, baseUrl.href);
+				return resolvedUrl.href;
+			} catch (e) {
+				// Fall back to manual resolution if URL constructor fails
+			}
+		}
+
+		// Manual path resolution (fallback for older browsers)
+		// Normalize basePath - ensure it ends with /
+		if (!basePath.endsWith('/')) {
+			basePath += '/';
+		}
+
+		// Remove leading slash from relativePath if present
+		if (relativePath.charAt(0) === '/') {
+			relativePath = relativePath.substring(1);
+		}
+
+		// Combine paths
+		var fullPath = basePath + relativePath;
+
+		// Resolve .. and . in the path
+		var parts = fullPath.split('/');
+		var resolved = [];
+
+		for (var i = 0; i < parts.length; i++) {
+			var part = parts[i];
+			if (part === '' || part === '.') {
+				// Skip empty parts and current directory
+				if (i === 0 && fullPath.indexOf('://') !== -1) {
+					// Preserve leading empty part for absolute URLs
+					resolved.push('');
+				}
+				continue;
+			} else if (part === '..') {
+				// Go up one directory
+				if (resolved.length > 0 && resolved[resolved.length - 1] !== '..') {
+					resolved.pop();
+				} else if (resolved.length === 0 || resolved[resolved.length - 1] === '') {
+					// Can't go up from root
+					continue;
+				} else {
+					resolved.push('..');
+				}
+			} else {
+				// Add directory/file
+				resolved.push(part);
+			}
+		}
+
+		// Reconstruct the path
+		var result = resolved.join('/');
+
+		// Ensure absolute URLs start with protocol
+		if (fullPath.indexOf('://') !== -1 && result.indexOf('://') === -1) {
+			// Extract protocol from original path
+			var protocolMatch = fullPath.match(/^([^:]+:\/\/)/);
+			if (protocolMatch) {
+				result = protocolMatch[1] + result.replace(/^\/+/, '');
+			}
+		}
+
+		return result;
 	}
 
 	// Helper function to build relative paths from script location
 	window.getFlipbookPath = function(relativePath) {
 		var scriptPath = getScriptPath();
-		// Remove leading slash if present
-		if (relativePath.charAt(0) === '/') {
-			relativePath = relativePath.substring(1);
+
+		// Debug mode: Enable by setting window.DEBUG_FLIPBOOK_PATHS = true in console
+		var debugMode = window.DEBUG_FLIPBOOK_PATHS === true;
+
+		if (debugMode) {
+			console.log('[getFlipbookPath] Input relativePath:', relativePath);
+			console.log('[getFlipbookPath] Detected scriptPath:', scriptPath);
 		}
-		// If script path is found, use it; otherwise use relative path
+
+		// If script path is found, resolve the path properly
 		if (scriptPath) {
-			return scriptPath + relativePath;
+			var resolved = resolvePath(scriptPath, relativePath);
+			if (debugMode) {
+				console.log('[getFlipbookPath] Resolved path:', resolved);
+			}
+			return resolved;
 		}
+
 		// Fallback: use relative path from script location
 		// Since script is in js/, we go up one level with ../
-		return '../' + relativePath;
+		var fallback = '../' + relativePath;
+		if (debugMode) {
+			console.warn('[getFlipbookPath] Script path not found! Using fallback:', fallback);
+			console.log('[getFlipbookPath] All script tags:', Array.from(document.getElementsByTagName('script')).map(function(s) { return s.src || 'inline'; }));
+		}
+		return fallback;
 	};
 })();
 
