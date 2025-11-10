@@ -20,7 +20,26 @@
 	// Configure PDF.js worker path
 	// This must be set before any PDF operations occur
 	function configurePDFWorker() {
-		var workerPath = 'assets/flipbook/js/pdf.worker.js';
+		// Use relative path helper if available (from main.js), otherwise use relative path
+		var workerPath;
+		if (typeof window.getFlipbookPath === 'function') {
+			workerPath = window.getFlipbookPath('pdf.worker.js');
+		} else {
+			// Fallback: use relative path from script location
+			// Since this script is in js/, pdf.worker.js is in the same directory
+			var scripts = document.getElementsByTagName('script');
+			for (var i = scripts.length - 1; i >= 0; i--) {
+				var src = scripts[i].src;
+				if (src && src.indexOf('init-dpi.js') !== -1) {
+					workerPath = src.substring(0, src.lastIndexOf('/') + 1) + 'pdf.worker.js';
+					break;
+				}
+			}
+			// Last fallback
+			if (!workerPath) {
+				workerPath = 'pdf.worker.js';
+			}
+		}
 
 		// Try multiple ways to set the worker path for compatibility
 		if (typeof PDFJS !== 'undefined') {

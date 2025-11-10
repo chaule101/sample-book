@@ -1,15 +1,49 @@
+// Helper function to get relative path from script location (for WordPress compatibility)
+(function() {
+	function getScriptPath() {
+		// Try to find the current script tag
+		var scripts = document.getElementsByTagName('script');
+		for (var i = scripts.length - 1; i >= 0; i--) {
+			var src = scripts[i].src;
+			if (src && src.indexOf('main.js') !== -1) {
+				// Extract directory path from script src (e.g., /path/to/assets/flipbook/js/)
+				return src.substring(0, src.lastIndexOf('/') + 1);
+			}
+		}
+		// Fallback: use relative path from document
+		return '';
+	}
+
+	// Helper function to build relative paths from script location
+	window.getFlipbookPath = function(relativePath) {
+		var scriptPath = getScriptPath();
+		// Remove leading slash if present
+		if (relativePath.charAt(0) === '/') {
+			relativePath = relativePath.substring(1);
+		}
+		// If script path is found, use it; otherwise use relative path
+		if (scriptPath) {
+			return scriptPath + relativePath;
+		}
+		// Fallback: use relative path from script location
+		// Since script is in js/, we go up one level with ../
+		return '../' + relativePath;
+	};
+})();
+
 // Configure PDF.js worker path at the very beginning
 // This ensures it's set before any PDF operations occur
 (function() {
+	var workerPath = window.getFlipbookPath('pdf.worker.js');
 	if (typeof PDFJS !== 'undefined') {
-		PDFJS.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+		PDFJS.workerSrc = workerPath;
 	}
 	if (typeof pdfjsLib !== 'undefined') {
-		pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+		pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
 	}
 	if (typeof window !== 'undefined') {
 		window.PDFJS = window.PDFJS || {};
-		window.PDFJS.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+		window.PDFJS.workerSrc = workerPath;
 	}
 })();
 
@@ -108,27 +142,28 @@
 })();
 
 var template = {
-	html: 'assets/flipbook/templates/default-book-view.html',
+	html: window.getFlipbookPath('../templates/default-book-view.html'),
 	links: [{
 		rel: 'stylesheet',
-		href: 'assets/flipbook/css/font-awesome.min.css'
+		href: window.getFlipbookPath('../css/font-awesome.min.css')
 	}],
 	styles: [
-		'assets/flipbook/css/short-black-book-view.css'
+		window.getFlipbookPath('../css/short-black-book-view.css')
 	],
-	script: 'assets/flipbook/js/default-book-view.js'
+	script: window.getFlipbookPath('default-book-view.js')
 };
 
 // Function to initialize and load the book
 function loadBook() {
 	// Ensure worker path is set before loading PDF
+	var workerPath = window.getFlipbookPath('pdf.worker.js');
 	if (typeof PDFJS !== 'undefined') {
-		PDFJS.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+		PDFJS.workerSrc = workerPath;
 	}
 	if (typeof pdfjsLib !== 'undefined') {
-		pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/flipbook/js/pdf.worker.js';
+		pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
 	}
-	var PDF_PATH = 'assets/flipbook/books/pdf/ProfileBook.pdf';
+	var PDF_PATH = window.getFlipbookPath('../books/pdf/ProfileBook.pdf');
 	var container = $('#container-book');
 
 	// Show the container
@@ -174,18 +209,19 @@ function loadBook() {
 	// Use 2x scale to match 50% zoom clarity (2x resolution = clearer text)
 	var pdfScale = 2.0;
 
-	var options = {
+		var soundPath = window.getFlipbookPath('../sounds/start-flip.mp3');
+		var options = {
 		pdf: PDF_PATH,
 		template: template,
 		// Try multiple sound configuration formats
 		sound: {
-			startFlip: 'assets/flipbook/sounds/start-flip.mp3',
+			startFlip: soundPath,
 		},
 		sounds: {
-			startFlip: 'assets/flipbook/sounds/start-flip.mp3',
+			startFlip: soundPath,
 		},
 		// Alternative format: separate properties
-		soundStartFlip: 'assets/flipbook/sounds/start-flip.mp3',
+		soundStartFlip: soundPath,
 		// Single propertiesCallback that handles both scale and sounds
 		propertiesCallback: function(props) {
 			// Increase PDF rendering scale for better text clarity
@@ -196,15 +232,16 @@ function loadBook() {
 
 			// Set sounds in properties - try multiple formats
 			// Always set sounds, even if they exist (override)
+			var soundPath = window.getFlipbookPath('../sounds/start-flip.mp3');
 			props.sound = {
-				startFlip: 'assets/flipbook/sounds/start-flip.mp3',
+				startFlip: soundPath,
 			};
 			props.sounds = {
-				startFlip: 'assets/flipbook/sounds/start-flip.mp3',
+				startFlip: soundPath,
 			};
 
 			// Also try as separate properties
-			props.soundStartFlip = 'assets/flipbook/sounds/start-flip.mp3';
+			props.soundStartFlip = soundPath;
 
 			return props;
 		}
@@ -384,7 +421,7 @@ function loadBook() {
 								// Try to manually create and load audio objects
 								try {
 									// Create audio elements for startFlip and endFlip
-									var startFlipAudio = new Audio('assets/flipbook/sounds/start-flip.mp3');
+									var startFlipAudio = new Audio(window.getFlipbookPath('../sounds/start-flip.mp3'));
 
 									// Preload the audio
 									startFlipAudio.preload = 'auto';
